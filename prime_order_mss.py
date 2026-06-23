@@ -2,7 +2,7 @@ from time import perf_counter
 
 from sympy import primerange
 
-from search_tools import full_search, quick_search
+from ffquarry.search_tools import full_search, quick_search
 
 PRIME_LIMIT = 400_000
 RESULTS_PATH = "results.txt"
