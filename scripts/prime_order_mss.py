@@ -1,3 +1,4 @@
+from pathlib import Path
 from time import perf_counter
 
 from sympy import primerange
@@ -5,7 +6,8 @@ from sympy import primerange
 from ffquarry.search_tools import full_search, quick_search
 
 PRIME_LIMIT = 400_000
-RESULTS_PATH = "results.txt"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+RESULTS_PATH = PROJECT_ROOT / "results" / "prime_order_mss.txt"
 
 
 def find_mss(p):
