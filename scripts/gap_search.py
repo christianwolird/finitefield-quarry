@@ -3,19 +3,12 @@ from time import perf_counter
 
 from sympy import primerange
 
-from ffquarry.search_tools import full_search, quick_search
+from ffquarry.gap_tools import smart_search
+from ffquarry.prime_field import PrimeField
 
 PRIME_LIMIT = 400_000
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-RESULTS_PATH = PROJECT_ROOT / "results" / "prime_order_mss.txt"
-
-
-def find_mss(p):
-    result = quick_search(p)
-    if result is not None:
-        return result
-
-    return full_search(p)
+RESULTS_PATH = PROJECT_ROOT / "results" / "gaps" / "prime_field_solutions.txt"
 
 
 def format_result(p, result):
@@ -35,7 +28,7 @@ def main():
     with open(RESULTS_PATH, "w", encoding="utf-8") as results_file:
         for p in primerange(PRIME_LIMIT):
             search_start = perf_counter()
-            result = find_mss(p)
+            result = smart_search(PrimeField(p))
             search_times.append(perf_counter() - search_start)
 
             if result is None:
@@ -48,10 +41,8 @@ def main():
 
     print(f"Completed search in {elapsed:.2f} seconds.")
     print(f"Average search time: {average_ms:.3f} milliseconds.")
-    print(
-        f"{len(no_solution_primes)} finite fields had no MSS: "
-        f"{no_solution_primes}"
-    )
+    print(f"{len(no_solution_primes)} finite fields had no 3x3 GAP of squares: ")
+    print(f"  {no_solution_primes}")
 
 
 if __name__ == "__main__":
