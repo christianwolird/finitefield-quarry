@@ -1,4 +1,9 @@
 
+def are_distinct(field, elements):
+    keys = [field.key(element) for element in elements]
+    return len(set(keys)) == len(keys)
+
+
 def smart_search(field):
     result = quick_search(field)
     if result is not None:
@@ -26,9 +31,10 @@ def quick_search(field):
 
     for d in field.elements():
         D = field(d**2)
-        if D in seen_D_values:
+        D_key = field.key(D)
+        if D_key in seen_D_values:
             continue
-        seen_D_values.add(D)
+        seen_D_values.add(D_key)
 
         diff = D - A
 
@@ -40,7 +46,7 @@ def quick_search(field):
         I = field(C + 2 * diff)
 
         gap_elements = [A, B, C, D, E, F, G, H, I]
-        if len(set(gap_elements)) != len(gap_elements):
+        if not are_distinct(field, gap_elements):
             continue
 
         if all(field.is_square(element) for element in [E, F, G, H, I]):
@@ -70,9 +76,10 @@ def full_search(field):
 
         for b in field.elements():
             B = field(b**2)
-            if B in seen_B_values:
+            B_key = field.key(B)
+            if B_key in seen_B_values:
                 continue
-            seen_B_values.add(B)
+            seen_B_values.add(B_key)
 
             if B == A:
                 continue
@@ -81,9 +88,10 @@ def full_search(field):
 
             for d in field.elements():
                 D = field(d**2)
-                if D in seen_D_values:
+                D_key = field.key(D)
+                if D_key in seen_D_values:
                     continue
-                seen_D_values.add(D)
+                seen_D_values.add(D_key)
 
                 if D == A or D == B:
                     continue
@@ -101,11 +109,10 @@ def full_search(field):
                 I = field(A + 2 * x + 2 * y)
 
                 gap_elements = [A, B, C, D, E, F, G, H, I]
-                if len(set(gap_elements)) != len(gap_elements):
+                if not are_distinct(field, gap_elements):
                     continue
 
                 if all(field.is_square(element) for element in [C, E, F, G, H, I]):
                     return gap_elements
 
     return None
-

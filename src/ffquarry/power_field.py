@@ -6,24 +6,41 @@ class PowerField:
         self.q = q
         self.gf = galois.GF(q)
 
+        self.square_exponent_bits = [
+            bit == "1"
+            for bit in reversed(bin((q - 1) // 2)[2:])
+        ]
+
+    def __call__(self, value):
+        if isinstance(value, self.gf):
+            return value
+
+        return self.gf(value % self.gf.characteristic)
+
     def elements(self):
-        return [self.gf(x) for x in self.gf.elements]
+        return self.gf.elements
 
-    def power(self, a, exponent):
-        result = self.gf(1)
-        base = self.gf(a)
-
-        while exponent:
-            if exponent % 2 == 1:
-                result = result * base
-            base = base * base
-            exponent = exponent // 2
-
-        return result
-
-    def is_square(self, a):
-        if a == self.gf(0):
+    def is_square(self, value):
+        value = self(value)
+        if value == self.gf(0):
             return True
 
-        exponent = (self.q - 1) // 2
-        return self.power(a, exponent) == self.gf(1)
+        if self.gf.characteristic == 2:
+            return True
+
+        result = self.gf(1)
+        power = value
+
+        for bit in self.square_exponent_bits:
+            if bit:
+                result = result * power
+            power = power * power
+
+        return result == self.gf(1)
+
+    def key(self, value):
+        return int(self(value))
+
+    def format(self, value):
+        with self.gf.repr("poly"):
+            return str(self(value))

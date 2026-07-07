@@ -11,11 +11,14 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RESULTS_PATH = PROJECT_ROOT / "results" / "gaps" / "prime_field_solutions.txt"
 
 
-def format_result(p, result):
+def format_result(p, field, result):
     if result is None:
         return f"{p}: None"
 
-    A, B, C, D, E, F, G, H, I = result
+    A, B, C, D, E, F, G, H, I = [
+        field.format(element)
+        for element in result
+    ]
     return f"{p}: {A} {B} {C} | {D} {E} {F} | {G} {H} {I}"
 
 
@@ -27,14 +30,16 @@ def main():
 
     with open(RESULTS_PATH, "w", encoding="utf-8") as results_file:
         for p in primerange(PRIME_LIMIT):
+            field = PrimeField(p)
+
             search_start = perf_counter()
-            result = smart_search(PrimeField(p))
+            result = smart_search(field)
             search_times.append(perf_counter() - search_start)
 
             if result is None:
                 no_solution_primes.append(p)
 
-            results_file.write(format_result(p, result) + "\n")
+            results_file.write(format_result(p, field, result) + "\n")
 
     elapsed = perf_counter() - start_time
     average_ms = 1000 * sum(search_times) / len(search_times)
