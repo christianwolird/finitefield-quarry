@@ -21,7 +21,8 @@ def quick_search(field):
         D   E   F
         G   H   I
 
-    Returns the entries in row-major order, or None if no solution is found.
+    Returns (A, x, y), where x is the row step and y is the column step,
+    or None if no solution is found.
     """
     A = field(1)
     B = field(25)
@@ -50,7 +51,7 @@ def quick_search(field):
             continue
 
         if all(field.is_square(element) for element in [E, F, G, H, I]):
-            return gap_elements
+            return A, diff, B - A
 
     return None
 
@@ -69,7 +70,8 @@ def full_search(field):
     This search is certain to find a GAP of distinct squares if one exists
     in F_p, since up to re-scaling, we can assume the A is either 0 or 1.
 
-    Returns the entries in row-major order, or None if no solution is found.
+    Returns (A, x, y), where x is the row step and y is the column step,
+    or None if no solution is found.
     """
     for A in [field(1), field(0)]:
         seen_B_values = set()
@@ -82,6 +84,12 @@ def full_search(field):
             seen_B_values.add(B_key)
 
             if B == A:
+                continue
+
+            y = B - A
+            C = field(A + 2 * y)
+            
+            if not field.is_square(C):
                 continue
 
             seen_D_values = set()
@@ -97,9 +105,6 @@ def full_search(field):
                     continue
 
                 x = D - A
-                y = B - A
-
-                C = field(A + 2 * y)
 
                 E = field(D + y)
                 F = field(D + 2 * y)
@@ -112,7 +117,7 @@ def full_search(field):
                 if not are_distinct(field, gap_elements):
                     continue
 
-                if all(field.is_square(element) for element in [C, E, F, G, H, I]):
-                    return gap_elements
+                if all(field.is_square(element) for element in [E, F, G, H, I]):
+                    return A, x, y
 
     return None
