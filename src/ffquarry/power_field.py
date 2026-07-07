@@ -6,6 +6,7 @@ class PowerField:
         self.q = q
         self.gf = galois.GF(q)
 
+        # Store the binary expansion once; is_square() uses repeated squaring.
         self.square_exponent_bits = [
             bit == "1"
             for bit in reversed(bin((q - 1) // 2)[2:])
@@ -15,6 +16,8 @@ class PowerField:
         if isinstance(value, self.gf):
             return value
 
+        # Python integers enter through the prime subfield, not as galois's
+        # internal integer encoding of extension-field elements.
         return self.gf(value % self.gf.characteristic)
 
     def elements(self):
@@ -39,8 +42,10 @@ class PowerField:
         return result == self.gf(1)
 
     def key(self, value):
+        # galois elements are not hashable, but int(...) is a unique label.
         return int(self(value))
 
     def format(self, value):
+        # Polynomial notation is easier to read in result files.
         with self.gf.repr("poly"):
             return str(self(value))

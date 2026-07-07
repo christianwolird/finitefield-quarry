@@ -1,5 +1,6 @@
 
 def are_distinct(field, elements):
+    # The field decides how to turn an element into a hashable representative.
     keys = [field.key(element) for element in elements]
     return len(set(keys)) == len(keys)
 
@@ -32,6 +33,7 @@ def quick_search(field):
 
     for d in field.elements():
         D = field(d**2)
+        # d and -d give the same square, so only try each square value once.
         D_key = field.key(D)
         if D_key in seen_D_values:
             continue
@@ -78,6 +80,7 @@ def full_search(field):
 
         for b in field.elements():
             B = field(b**2)
+            # Search by square values B and D, not by their square roots.
             B_key = field.key(B)
             if B_key in seen_B_values:
                 continue
@@ -88,7 +91,8 @@ def full_search(field):
 
             y = B - A
             C = field(A + 2 * y)
-            
+
+            # C depends only on A and B, so reject this whole B-branch early.
             if not field.is_square(C):
                 continue
 

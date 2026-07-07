@@ -4,6 +4,7 @@ class PrimeField:
         self.p = p
 
     def __call__(self, value):
+        # Keep prime-field elements as ordinary integers in the range 0,...,p-1.
         return value % self.p
 
     def elements(self):
@@ -14,6 +15,7 @@ class PrimeField:
         if a == 0:
             return True
 
+        # Euler's criterion: a^((p-1)/2) is 1 exactly for nonzero squares.
         exponent = (self.p - 1) // 2
         return pow(a, exponent, self.p) == 1
 

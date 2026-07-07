@@ -42,6 +42,8 @@ def prime_search(order_bound, verbose=False):
     no_solution_primes = []
 
     with open(PRIME_RESULTS_PATH, "w", encoding="utf-8") as results_file:
+        # Prime fields with a solution also settle all extension fields of
+        # the same characteristic, so only failures move on to power_search().
         for p in primerange(order_bound):
             if p == 2:
                 continue
@@ -70,6 +72,7 @@ def prime_power_exponents(p, order_bound):
     exponent = 2
     order = p * p
 
+    # Start at p^2; the prime field p was already handled in prime_search().
     while order < order_bound:
         yield exponent
         exponent += 1
@@ -93,6 +96,8 @@ def power_search(order_bound, no_solution_primes, verbose=False):
                 q = p**exponent
                 label = f"{p}^{exponent}"
                 inherited_from = None
+
+                # F_{p^a} embeds in F_{p^b} exactly when a divides b.
                 for solved_exponent in solved_exponents:
                     if exponent % solved_exponent == 0:
                         inherited_from = solved_exponent
