@@ -1,6 +1,6 @@
 # finitefield-quarry
 
-Search code for 3x3 generalized arithmetic progressions of distinct squares over finite fields.
+Search code for 3x3 generalized arithmetic progressions and 3D or 4D perfect Euler bricks of distinct squares over finite fields.
 
 A 3x3 GAP is written as
 
@@ -24,22 +24,33 @@ where `x` is the row step and `y` is the column step.
 ```text
 finitefield-quarry/
 ├── scripts/
+│   ├── brick_search.py
 │   └── gap_search.py
 ├── results/
+│   ├── bricks/
+│   │   ├── four_dim/
+│   │   │   ├── power_field_solutions.txt
+│   │   │   └── prime_field_solutions.txt
+│   │   └── three_dim/
+│   │       ├── power_field_solutions.txt
+│   │       └── prime_field_solutions.txt
 │   └── gaps/
 │       ├── prime_field_solutions.txt
 │       └── power_field_solutions.txt
 ├── src/
 │   └── ffquarry/
 │       ├── __init__.py
+│       ├── brick_tools.py
 │       ├── gap_tools.py
 │       ├── power_field.py
 │       └── prime_field.py
+├── tests/
+│   └── test_brick_tools.py
 ├── pyproject.toml
 └── README.md
 ```
 
-`ffquarry` contains the finite-field wrappers and GAP search code. `scripts/gap_search.py` is the main computational entry point.
+`ffquarry` contains the finite-field wrappers and search code. The two scripts are the computational entry points for GAP and brick searches.
 
 
 ## Setup
@@ -62,6 +73,8 @@ This installs the package dependencies, including `sympy` and `galois`.
 
 ## Running the Search
 
+### GAPs
+
 Run the search with an order bound:
 
 ```bash
@@ -80,8 +93,26 @@ It first searches odd prime fields below the order bound. If a solution is found
 
 For prime fields with no solution, the script searches fields of order `p^a` with `a >= 2` and `p^a` below the bound. If a solution is found over `F_{p^a}`, then fields `F_{p^b}` with `a | b` inherit that solution and are not searched separately.
 
+### Perfect bricks
+
+The brick dimension is required because 3D and 4D searches will generally use very different order bounds. Search one dimension at a time with:
+
+```bash
+python scripts/brick_search.py 400000 --dimension 3
+```
+
+To search 4D bricks or print each field as it is searched, use:
+
+```bash
+python scripts/brick_search.py 400000 --dimension 4 --verbose
+```
+
+The brick script also skips characteristic `2` and applies the same prime-field and extension-field inheritance rules as the GAP search.
+
 
 ## Output Files
+
+### GAPs
 
 Prime-field results are written to:
 
@@ -112,8 +143,29 @@ Example lines:
 
 For prime-power fields, entries are printed in polynomial notation. The `polynomial=...` field records the irreducible polynomial used by `galois` to construct that finite field.
 
+### Perfect bricks
+
+Each dimension has separate prime-field and prime-power result files:
+
+```text
+results/bricks/three_dim/prime_field_solutions.txt
+results/bricks/three_dim/power_field_solutions.txt
+results/bricks/four_dim/prime_field_solutions.txt
+results/bricks/four_dim/power_field_solutions.txt
+```
+
+A brick is recorded by side-square values, not by a choice of square roots:
+
+```text
+101: side_squares=(1, 36, 95, 87)
+```
+
+Every one of the 16 subset sums of this example is a distinct square in `F_101`. Prime-power results additionally record the field's irreducible polynomial.
+
 
 ## Search Methods
+
+### GAPs
 
 `smart_search(field)` first tries `quick_search(field)` and falls back to `full_search(field)` only if needed.
 
@@ -136,6 +188,20 @@ Both searches return either `None` or
 ```
 
 where `x = D - A` and `y = B - A`.
+
+### Perfect bricks
+
+For side-square values `(A, B, C)`, `subset_sums()` constructs
+
+```text
+0, A, B, A+B, C, A+C, B+C, A+B+C
+```
+
+and `is_perfect_brick()` requires all eight values to be squares and distinct. A 4D brick is checked in the same way with all 16 subset sums.
+
+The normalized exhaustive search fixes the first side-square to `1`, then adds square side values one at a time. It rejects a branch as soon as a newly introduced subset sum is repeated or fails the field wrapper's Euler-criterion test. Candidate squares are tested lazily; the search does not construct a table of all quadratic residues.
+
+The 3D smart search first fixes two side-squares to `3²` and `4²`, whose sum is `5²`, and varies the third. The 4D smart search first reduces several [small primitive integer Euler bricks](https://en.wikipedia.org/wiki/Euler_brick#Examples) into the field and tries to extend each with a fourth square side. In either dimension, the smart search falls back to the normalized exhaustive search if its integer seeds do not produce a result.
 
 
 ## Field Wrappers

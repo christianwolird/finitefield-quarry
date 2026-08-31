@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "finitefield-quarry"
 version = "0.1.0"
-description = "Search for magic squares of squares over finite fields."
+description = "Search for square patterns and perfect bricks over finite fields."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

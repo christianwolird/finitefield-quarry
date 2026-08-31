@@ -1,0 +1,17 @@
+3^2: None
+3^3: side_squares=(1, 2α, α^2 + 2α); polynomial=x^3 + 2x + 1
+3^4: side_squares=(1, α^2, α^3 + 2α^2 + 2α); polynomial=x^4 + 2x^3 + 2
+3^5: side_squares=(1, 2α, α^2); polynomial=x^5 + 2x + 1
+3^6: inherited from 3^3
+5^2: None
+5^3: side_squares=(1, α + 1, α^2 + 3α); polynomial=x^3 + 3x + 3
+5^4: side_squares=(1, 2, α^2 + α + 2); polynomial=x^4 + 4x^2 + 4x + 2
+7^2: side_squares=(1, α + 2, 6α + 3); polynomial=x^2 + 6x + 3
+7^3: side_squares=(1, α + 2, 5α + 4); polynomial=x^3 + 6x^2 + 4
+11^2: side_squares=(9, 5, 1); polynomial=x^2 + 7x + 2
+13^2: side_squares=(9, 3, 2); polynomial=x^2 + 12x + 2
+17^2: side_squares=(9, 16, 2); polynomial=x^2 + 16x + 3
+19^2: side_squares=(9, 16, 1); polynomial=x^2 + 18x + 2
+23^2: side_squares=(9, 16, 1); polynomial=x^2 + 21x + 5
+29^2: side_squares=(9, 16, 1); polynomial=x^2 + 24x + 2
+31^2: side_squares=(9, 16, 1); polynomial=x^2 + 29x + 3
