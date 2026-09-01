@@ -23,6 +23,11 @@ where `x` is the row step and `y` is the column step.
 
 ```text
 finitefield-quarry/
+├── verification/
+│   ├── brick_coverage.py
+│   ├── brick_verify.py
+│   ├── gap_coverage.py
+│   └── gap_verify.py
 ├── scripts/
 │   ├── brick_search.py
 │   └── gap_search.py
@@ -161,6 +166,35 @@ A brick is recorded by side-square values, not by a choice of square roots:
 ```
 
 Every one of the 16 subset sums of this example is a distinct square in `F_101`. Prime-power results additionally record the field's irreducible polynomial.
+
+
+## Verifying Results
+
+Verify every explicit witness and every extension-field inheritance reference:
+
+```bash
+python verification/gap_verify.py
+python verification/brick_verify.py
+```
+
+The GAP verifier reconstructs each 3x3 progression and checks that its nine
+entries are distinct squares with the recorded row and column steps. The brick
+verifier checks that all `2^d` subset sums of each `d`-dimensional result are
+distinct squares. Extension-field coordinates are interpreted using the
+irreducible polynomial stored on the same result line.
+
+Check that the result files cover the searches' checked-in order bounds:
+
+```bash
+python verification/gap_coverage.py
+python verification/brick_coverage.py
+```
+
+The default bounds are 350,000 for GAPs, 1,000 for 3D bricks, and 700,000 for
+4D bricks. A different GAP bound may be passed positionally. For bricks, use
+`--dimension 3|4 --order-bound BOUND`. Coverage follows the search's inclusion
+rule: a solution over `F_p` covers every extension of characteristic `p`, while
+an unresolved prime requires an explicit entry for every power below the bound.
 
 
 ## Search Methods
