@@ -79,7 +79,7 @@ def read_prime_records(path):
     return records, errors
 
 
-def read_power_records(path):
+def read_extension_records(path):
     """Return extension-field records keyed by ``(prime, exponent)``."""
     raw_records, errors = _read_records(path)
     records = {}
@@ -88,7 +88,7 @@ def read_power_records(path):
         match = re.fullmatch(r"([1-9]\d*)\^([1-9]\d*)", record.label)
         if match is None:
             errors.append(
-                f"{record.location}: invalid prime-power label {record.label!r}"
+                f"{record.location}: invalid extension-field label {record.label!r}"
             )
             continue
 
@@ -152,7 +152,7 @@ def parse_prime_element(text, p):
     return value
 
 
-def parse_power_element(text, field, p, exponent):
+def parse_extension_element(text, field, p, exponent):
     """Parse galois's polynomial representation in the primitive element α."""
     if not text:
         raise ValueError("empty field element")
@@ -193,11 +193,11 @@ def is_prime_square(value, p):
     return value == 0 or pow(value, (p - 1) // 2, p) == 1
 
 
-def is_power_square(value, field):
+def is_extension_square(value, field):
     return value == field(0) or value ** ((field.order - 1) // 2) == field(1)
 
 
-def prime_power_exponents(p, order_bound):
+def extension_exponents(p, order_bound):
     exponent = 2
     order = p * p
     while order < order_bound:
@@ -206,12 +206,12 @@ def prime_power_exponents(p, order_bound):
         order *= p
 
 
-def validate_inherited_records(power_records, direct_solutions):
+def validate_inherited_records(extension_records, direct_solutions):
     """Check that inherited entries point to a valid embedded solution."""
     errors = []
     inheritance_pattern = re.compile(r"inherited from ([1-9]\d*)\^([1-9]\d*)")
 
-    for (p, exponent), record in power_records.items():
+    for (p, exponent), record in extension_records.items():
         if not record.body.startswith("inherited from "):
             continue
 
@@ -231,7 +231,7 @@ def validate_inherited_records(power_records, direct_solutions):
                 f"{record.location}: F_({p}^{source_exponent}) does not embed in "
                 f"F_({p}^{exponent})"
             )
-        elif source not in power_records:
+        elif source not in extension_records:
             errors.append(f"{record.location}: inherited source has no result entry")
         elif source not in direct_solutions:
             errors.append(

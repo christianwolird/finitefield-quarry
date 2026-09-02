@@ -7,12 +7,12 @@ try:
     from ._result_tools import (
         PROJECT_ROOT,
         extension_field,
-        is_power_square,
+        is_extension_square,
         is_prime_square,
-        parse_power_element,
+        parse_extension_element,
         parse_prime_element,
         print_errors,
-        read_power_records,
+        read_extension_records,
         read_prime_records,
         validate_inherited_records,
     )
@@ -20,12 +20,12 @@ except ImportError:
     from _result_tools import (
         PROJECT_ROOT,
         extension_field,
-        is_power_square,
+        is_extension_square,
         is_prime_square,
-        parse_power_element,
+        parse_extension_element,
         parse_prime_element,
         print_errors,
-        read_power_records,
+        read_extension_records,
         read_prime_records,
         validate_inherited_records,
     )
@@ -34,7 +34,9 @@ except ImportError:
 RESULTS_DIR = PROJECT_ROOT / "results" / "bricks"
 DIMENSION_DIRS = {3: RESULTS_DIR / "three_dim", 4: RESULTS_DIR / "four_dim"}
 PRIME_SOLUTION_PATTERN = re.compile(r"side_squares=\((.+)\)")
-POWER_SOLUTION_PATTERN = re.compile(r"side_squares=\((.+)\); polynomial=(.+)")
+EXTENSION_SOLUTION_PATTERN = re.compile(
+    r"side_squares=\((.+)\); polynomial=(.+)"
+)
 
 
 def _subset_sums(side_squares, zero):
@@ -84,11 +86,11 @@ def verify_prime_record(p, dimensions, record):
     return not errors, [f"{record.location}: {error}" for error in errors]
 
 
-def verify_power_record(p, exponent, dimensions, record):
+def verify_extension_record(p, exponent, dimensions, record):
     if record.body == "None" or record.body.startswith("inherited from "):
         return False, []
 
-    match = POWER_SOLUTION_PATTERN.fullmatch(record.body)
+    match = EXTENSION_SOLUTION_PATTERN.fullmatch(record.body)
     if match is None:
         return False, [f"{record.location}: malformed brick solution"]
 
@@ -96,7 +98,7 @@ def verify_power_record(p, exponent, dimensions, record):
     try:
         field = extension_field(p, exponent, polynomial_text)
         sides = [
-            parse_power_element(text, field, p, exponent)
+            parse_extension_element(text, field, p, exponent)
             for text in _split_sides(side_text)
         ]
     except ValueError as error:
@@ -107,7 +109,7 @@ def verify_power_record(p, exponent, dimensions, record):
         dimensions,
         zero=field(0),
         key=int,
-        is_square=lambda value: is_power_square(value, field),
+        is_square=lambda value: is_extension_square(value, field),
     )
     return not errors, [f"{record.location}: {error}" for error in errors]
 
@@ -117,33 +119,38 @@ def verify_dimension(dimensions):
     prime_records, prime_errors = read_prime_records(
         results_dir / "prime_field_solutions.txt"
     )
-    power_records, power_errors = read_power_records(
-        results_dir / "power_field_solutions.txt"
+    extension_records, extension_errors = read_extension_records(
+        results_dir / "extension_field_solutions.txt"
     )
-    errors = prime_errors + power_errors
+    errors = prime_errors + extension_errors
     verified_prime_solutions = 0
-    verified_power_solutions = set()
+    verified_extension_solutions = set()
 
     for p, record in prime_records.items():
         valid, record_errors = verify_prime_record(p, dimensions, record)
         errors.extend(record_errors)
         verified_prime_solutions += int(valid)
 
-    for (p, exponent), record in power_records.items():
-        valid, record_errors = verify_power_record(p, exponent, dimensions, record)
+    for (p, exponent), record in extension_records.items():
+        valid, record_errors = verify_extension_record(
+            p, exponent, dimensions, record
+        )
         errors.extend(record_errors)
         if valid:
-            verified_power_solutions.add((p, exponent))
+            verified_extension_solutions.add((p, exponent))
 
-    errors.extend(validate_inherited_records(power_records, verified_power_solutions))
+    errors.extend(
+        validate_inherited_records(extension_records, verified_extension_solutions)
+    )
     inherited_count = sum(
-        record.body.startswith("inherited from ") for record in power_records.values()
+        record.body.startswith("inherited from ")
+        for record in extension_records.values()
     )
     return (
         errors,
-        verified_prime_solutions + len(verified_power_solutions),
+        verified_prime_solutions + len(verified_extension_solutions),
         inherited_count,
-        len(prime_records) + len(power_records),
+        len(prime_records) + len(extension_records),
     )
 
 
@@ -171,4 +178,3 @@ def main():
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

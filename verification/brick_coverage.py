@@ -8,17 +8,17 @@ from sympy import primerange
 try:
     from ._result_tools import (
         PROJECT_ROOT,
-        prime_power_exponents,
+        extension_exponents,
         print_errors,
-        read_power_records,
+        read_extension_records,
         read_prime_records,
     )
 except ImportError:
     from _result_tools import (
         PROJECT_ROOT,
-        prime_power_exponents,
+        extension_exponents,
         print_errors,
-        read_power_records,
+        read_extension_records,
         read_prime_records,
     )
 
@@ -54,18 +54,18 @@ def check_dimension(dimensions, order_bound):
     prime_records, prime_errors = read_prime_records(
         results_dir / "prime_field_solutions.txt"
     )
-    power_records, power_errors = read_power_records(
-        results_dir / "power_field_solutions.txt"
+    extension_records, extension_errors = read_extension_records(
+        results_dir / "extension_field_solutions.txt"
     )
-    errors = prime_errors + power_errors
+    errors = prime_errors + extension_errors
     missing = []
     prime_count = 0
-    power_count = 0
-    implicit_power_count = 0
+    extension_count = 0
+    implicit_extension_count = 0
 
     if order_bound <= 3:
         errors.append(f"{dimensions}D order bound must be greater than 3")
-        return errors, prime_count, power_count, implicit_power_count
+        return errors, prime_count, extension_count, implicit_extension_count
 
     for p in primerange(3, order_bound):
         p = int(p)
@@ -74,11 +74,11 @@ def check_dimension(dimensions, order_bound):
         if prime_record is None:
             missing.append(str(p))
 
-        for exponent in prime_power_exponents(p, order_bound):
-            power_count += 1
+        for exponent in extension_exponents(p, order_bound):
+            extension_count += 1
             if prime_record is not None and prime_record.body != "None":
-                implicit_power_count += 1
-            elif (p, exponent) not in power_records:
+                implicit_extension_count += 1
+            elif (p, exponent) not in extension_records:
                 missing.append(f"{p}^{exponent}")
 
     if missing:
@@ -88,7 +88,7 @@ def check_dimension(dimensions, order_bound):
             + (f" (and {len(missing) - 20} more)" if len(missing) > 20 else "")
         )
 
-    return errors, prime_count, power_count, implicit_power_count
+    return errors, prime_count, extension_count, implicit_extension_count
 
 
 def main(argv=None):
@@ -99,13 +99,14 @@ def main(argv=None):
 
     for dimensions in dimensions_to_check:
         order_bound = args.order_bound or DEFAULT_ORDER_BOUNDS[dimensions]
-        dimension_errors, prime_count, power_count, implicit_count = check_dimension(
-            dimensions, order_bound
+        dimension_errors, prime_count, extension_count, implicit_count = (
+            check_dimension(dimensions, order_bound)
         )
         errors.extend(dimension_errors)
         summaries.append(
             f"{dimensions}D below {order_bound}: {prime_count} primes and "
-            f"{power_count} extensions ({implicit_count} by prime-field inclusion)"
+            f"{extension_count} extensions "
+            f"({implicit_count} by prime-field inclusion)"
         )
 
     if errors:

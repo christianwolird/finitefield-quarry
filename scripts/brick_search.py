@@ -5,7 +5,7 @@ from time import perf_counter
 from sympy import primerange
 
 from ffquarry.brick_tools import smart_search
-from ffquarry.power_field import PowerField
+from ffquarry.extension_field import ExtensionField
 from ffquarry.prime_field import PrimeField
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -18,8 +18,8 @@ PRIME_RESULTS_PATHS = {
     dimensions: results_dir / "prime_field_solutions.txt"
     for dimensions, results_dir in DIMENSION_RESULTS_DIRS.items()
 }
-POWER_RESULTS_PATHS = {
-    dimensions: results_dir / "power_field_solutions.txt"
+EXTENSION_RESULTS_PATHS = {
+    dimensions: results_dir / "extension_field_solutions.txt"
     for dimensions, results_dir in DIMENSION_RESULTS_DIRS.items()
 }
 
@@ -52,7 +52,7 @@ def parse_args(argv=None):
     return parser.parse_args(argv)
 
 
-def prime_power_exponents(p, order_bound):
+def extension_exponents(p, order_bound):
     exponent = 2
     order = p * p
 
@@ -94,16 +94,18 @@ def prime_search(order_bound, dimensions, verbose=False):
     return no_solution_primes
 
 
-def power_search(order_bound, dimensions, no_solution_primes, verbose=False):
+def extension_search(order_bound, dimensions, no_solution_primes, verbose=False):
     """Search extension fields for characteristics unresolved over F_p."""
     DIMENSION_RESULTS_DIRS[dimensions].mkdir(parents=True, exist_ok=True)
-    no_solution_power_orders = []
+    no_solution_extension_orders = []
 
-    with open(POWER_RESULTS_PATHS[dimensions], "w", encoding="utf-8") as results_file:
+    with open(
+        EXTENSION_RESULTS_PATHS[dimensions], "w", encoding="utf-8"
+    ) as results_file:
         for p in no_solution_primes:
             solved_exponents = []
 
-            for exponent in prime_power_exponents(p, order_bound):
+            for exponent in extension_exponents(p, order_bound):
                 q = p**exponent
                 label = f"{p}^{exponent}"
                 inherited_from = next(
@@ -129,11 +131,11 @@ def power_search(order_bound, dimensions, no_solution_primes, verbose=False):
                     results_file.flush()
                     continue
 
-                field = PowerField(q)
+                field = ExtensionField(q)
                 result = smart_search(field, dimensions)
 
                 if result is None:
-                    no_solution_power_orders.append(q)
+                    no_solution_extension_orders.append(q)
                     results_file.write(f"{label}: None\n")
                 else:
                     solved_exponents.append(exponent)
@@ -144,7 +146,7 @@ def power_search(order_bound, dimensions, no_solution_primes, verbose=False):
                     )
                 results_file.flush()
 
-    return no_solution_power_orders
+    return no_solution_extension_orders
 
 
 def main(argv=None):
@@ -163,7 +165,7 @@ def main(argv=None):
         dimensions,
         verbose=args.verbose,
     )
-    no_solution_power_orders = power_search(
+    no_solution_extension_orders = extension_search(
         args.order_bound,
         dimensions,
         no_solution_primes,
@@ -174,8 +176,8 @@ def main(argv=None):
     print(f"Completed {dimensions}D search in {elapsed:.2f} seconds.")
     print(f"  Prime fields without a solution: {no_solution_primes}")
     print(
-        "  Prime-power fields without a solution: "
-        f"{no_solution_power_orders}",
+        "  Extension fields without a solution: "
+        f"{no_solution_extension_orders}",
         flush=True,
     )
 

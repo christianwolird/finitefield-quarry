@@ -8,22 +8,22 @@ from sympy import primerange
 try:
     from ._result_tools import (
         PROJECT_ROOT,
-        prime_power_exponents,
+        extension_exponents,
         print_errors,
-        read_power_records,
+        read_extension_records,
         read_prime_records,
     )
 except ImportError:
     from _result_tools import (
         PROJECT_ROOT,
-        prime_power_exponents,
+        extension_exponents,
         print_errors,
-        read_power_records,
+        read_extension_records,
         read_prime_records,
     )
 
 
-DEFAULT_ORDER_BOUND = 350_000
+DEFAULT_ORDER_BOUND = 200_000
 RESULTS_DIR = PROJECT_ROOT / "results" / "gaps"
 
 
@@ -45,18 +45,18 @@ def check_coverage(order_bound):
     prime_records, prime_errors = read_prime_records(
         RESULTS_DIR / "prime_field_solutions.txt"
     )
-    power_records, power_errors = read_power_records(
-        RESULTS_DIR / "power_field_solutions.txt"
+    extension_records, extension_errors = read_extension_records(
+        RESULTS_DIR / "extension_field_solutions.txt"
     )
-    errors = prime_errors + power_errors
+    errors = prime_errors + extension_errors
     missing = []
     prime_count = 0
-    power_count = 0
-    implicit_power_count = 0
+    extension_count = 0
+    implicit_extension_count = 0
 
     if order_bound <= 3:
         errors.append("order bound must be greater than 3")
-        return errors, prime_count, power_count, implicit_power_count
+        return errors, prime_count, extension_count, implicit_extension_count
 
     for p in primerange(3, order_bound):
         p = int(p)
@@ -65,13 +65,13 @@ def check_coverage(order_bound):
         if prime_record is None:
             missing.append(str(p))
 
-        for exponent in prime_power_exponents(p, order_bound):
-            power_count += 1
+        for exponent in extension_exponents(p, order_bound):
+            extension_count += 1
             # A solution in F_p embeds in every extension F_(p^a), which is
-            # why the search deliberately emits no separate power records.
+            # why the search deliberately emits no separate extension records.
             if prime_record is not None and prime_record.body != "None":
-                implicit_power_count += 1
-            elif (p, exponent) not in power_records:
+                implicit_extension_count += 1
+            elif (p, exponent) not in extension_records:
                 missing.append(f"{p}^{exponent}")
 
     if missing:
@@ -81,12 +81,12 @@ def check_coverage(order_bound):
             + (f" (and {len(missing) - 20} more)" if len(missing) > 20 else "")
         )
 
-    return errors, prime_count, power_count, implicit_power_count
+    return errors, prime_count, extension_count, implicit_extension_count
 
 
 def main(argv=None):
     args = parse_args(argv)
-    errors, prime_count, power_count, implicit_power_count = check_coverage(
+    errors, prime_count, extension_count, implicit_extension_count = check_coverage(
         args.order_bound
     )
     if errors:
@@ -95,12 +95,11 @@ def main(argv=None):
 
     print(
         f"GAP results cover all {prime_count} odd prime fields and "
-        f"{power_count} odd extension fields below {args.order_bound} "
-        f"({implicit_power_count} extensions covered by prime-field inclusion)."
+        f"{extension_count} odd extension fields below {args.order_bound} "
+        f"({implicit_extension_count} extensions covered by prime-field inclusion)."
     )
     return 0
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

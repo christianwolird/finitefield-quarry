@@ -34,20 +34,20 @@ finitefield-quarry/
 ├── results/
 │   ├── bricks/
 │   │   ├── four_dim/
-│   │   │   ├── power_field_solutions.txt
+│   │   │   ├── extension_field_solutions.txt
 │   │   │   └── prime_field_solutions.txt
 │   │   └── three_dim/
-│   │       ├── power_field_solutions.txt
+│   │       ├── extension_field_solutions.txt
 │   │       └── prime_field_solutions.txt
 │   └── gaps/
-│       ├── prime_field_solutions.txt
-│       └── power_field_solutions.txt
+│       ├── extension_field_solutions.txt
+│       └── prime_field_solutions.txt
 ├── src/
 │   └── ffquarry/
 │       ├── __init__.py
 │       ├── brick_tools.py
+│       ├── extension_field.py
 │       ├── gap_tools.py
-│       ├── power_field.py
 │       └── prime_field.py
 ├── tests/
 │   └── test_brick_tools.py
@@ -80,13 +80,14 @@ This installs the package dependencies, including `sympy` and `galois`.
 
 ### GAPs
 
-Run the search with an order bound:
+Run the search with the default order bound of 200,000:
 
 ```bash
-python scripts/gap_search.py 400000
+python scripts/gap_search.py
 ```
 
-For more detailed progress during the prime-power search, use:
+To override the bound or show more detailed progress during the extension-field
+search, use:
 
 ```bash
 python scripts/gap_search.py 400000 --verbose
@@ -94,9 +95,9 @@ python scripts/gap_search.py 400000 --verbose
 
 The script skips characteristic `2`.
 
-It first searches odd prime fields below the order bound. If a solution is found over `F_p`, then all extension fields of characteristic `p` are considered settled by inclusion, so no prime-power fields of that characteristic are searched.
+It first searches odd prime fields below the order bound. If a solution is found over `F_p`, then all extension fields of characteristic `p` are considered settled by inclusion, so no separate extension fields of that characteristic are searched.
 
-For prime fields with no solution, the script searches fields of order `p^a` with `a >= 2` and `p^a` below the bound. If a solution is found over `F_{p^a}`, then fields `F_{p^b}` with `a | b` inherit that solution and are not searched separately.
+For prime fields with no solution, the script searches extension fields of order `p^a` with `a >= 2` and `p^a` below the bound. If a solution is found over `F_{p^a}`, then fields `F_{p^b}` with `a | b` inherit that solution and are not searched separately.
 
 ### Perfect bricks
 
@@ -132,10 +133,10 @@ Example lines:
 31: None
 ```
 
-Prime-power results are written to:
+Extension-field results are written to:
 
 ```text
-results/gaps/power_field_solutions.txt
+results/gaps/extension_field_solutions.txt
 ```
 
 Example lines:
@@ -146,17 +147,17 @@ Example lines:
 3^8: inherited from 3^4
 ```
 
-For prime-power fields, entries are printed in polynomial notation. The `polynomial=...` field records the irreducible polynomial used by `galois` to construct that finite field.
+For extension fields, entries are printed in polynomial notation. The `polynomial=...` field records the irreducible polynomial used by `galois` to construct that finite field.
 
 ### Perfect bricks
 
-Each dimension has separate prime-field and prime-power result files:
+Each dimension has separate prime-field and extension-field result files:
 
 ```text
 results/bricks/three_dim/prime_field_solutions.txt
-results/bricks/three_dim/power_field_solutions.txt
+results/bricks/three_dim/extension_field_solutions.txt
 results/bricks/four_dim/prime_field_solutions.txt
-results/bricks/four_dim/power_field_solutions.txt
+results/bricks/four_dim/extension_field_solutions.txt
 ```
 
 A brick is recorded by side-square values, not by a choice of square roots:
@@ -165,7 +166,7 @@ A brick is recorded by side-square values, not by a choice of square roots:
 101: side_squares=(1, 36, 95, 87)
 ```
 
-Every one of the 16 subset sums of this example is a distinct square in `F_101`. Prime-power results additionally record the field's irreducible polynomial.
+Every one of the 16 subset sums of this example is a distinct square in `F_101`. Extension-field results additionally record the field's irreducible polynomial.
 
 
 ## Verifying Results
@@ -190,11 +191,12 @@ python verification/gap_coverage.py
 python verification/brick_coverage.py
 ```
 
-The default bounds are 350,000 for GAPs, 1,000 for 3D bricks, and 700,000 for
+The default bounds are 200,000 for GAPs, 1,000 for 3D bricks, and 700,000 for
 4D bricks. A different GAP bound may be passed positionally. For bricks, use
 `--dimension 3|4 --order-bound BOUND`. Coverage follows the search's inclusion
 rule: a solution over `F_p` covers every extension of characteristic `p`, while
-an unresolved prime requires an explicit entry for every power below the bound.
+an unresolved prime requires an explicit entry for every extension field below
+the bound.
 
 
 ## Search Methods
@@ -242,4 +244,4 @@ The 3D smart search first fixes two side-squares to `3²` and `4²`, whose sum i
 
 `PrimeField(p)` uses ordinary Python integers modulo `p`.
 
-`PowerField(q)` wraps `galois.GF(q)` for prime-power fields. Arithmetic is done with `galois` field elements, while result output uses polynomial notation for readability.
+`ExtensionField(q)` wraps `galois.GF(q)` for non-prime finite fields. Arithmetic is done with `galois` field elements, while result output uses polynomial notation for readability.

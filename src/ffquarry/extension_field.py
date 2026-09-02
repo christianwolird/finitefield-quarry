@@ -1,7 +1,7 @@
 import galois
 
 
-class PowerField:
+class ExtensionField:
     def __init__(self, q):
         self.q = q
         self.gf = galois.GF(q)

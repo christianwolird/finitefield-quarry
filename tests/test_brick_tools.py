@@ -9,7 +9,7 @@ from ffquarry.brick_tools import (
     three_dimensional_full_search,
     three_dimensional_quick_search,
 )
-from ffquarry.power_field import PowerField
+from ffquarry.extension_field import ExtensionField
 from ffquarry.prime_field import PrimeField
 
 
@@ -53,8 +53,8 @@ class BrickToolsTests(unittest.TestCase):
         self.assertEqual(result[0], 1)
         self.assertTrue(is_perfect_brick(field, result))
 
-    def test_smart_search_supports_power_fields(self):
-        field = PowerField(49)
+    def test_smart_search_supports_extension_fields(self):
+        field = ExtensionField(49)
         result = smart_search(field, dimensions=3)
 
         self.assertIsNotNone(result)

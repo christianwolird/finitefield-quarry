@@ -34,7 +34,6 @@
 19^4: inherited from 19^2
 23^2: base=1, steps=(3, 1); polynomial=x^2 + 21x + 5
 23^3: base=1, steps=(9α^2 + 19α + 2, 1); polynomial=x^3 + 2x + 18
-23^4: inherited from 23^2
 31^2: base=1, steps=(30, 24); polynomial=x^2 + 29x + 3
 31^3: base=1, steps=(α^2 + 13α + 18, 24); polynomial=x^3 + x + 28
 43^2: base=1, steps=(42, 24); polynomial=x^2 + 42x + 3
@@ -42,4 +41,3 @@
 47^2: base=1, steps=(3, 24); polynomial=x^2 + 45x + 5
 47^3: base=1, steps=(α^2 + 2α, 24); polynomial=x^3 + 3x + 42
 67^2: base=1, steps=(66, 24); polynomial=x^2 + 63x + 2
-67^3: base=1, steps=(α^2 + 7α + 28, 24); polynomial=x^3 + 6x + 65

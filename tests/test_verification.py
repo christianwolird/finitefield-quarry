@@ -53,7 +53,7 @@ class WitnessVerificationTests(unittest.TestCase):
 
 
 class CoverageTests(unittest.TestCase):
-    def test_missing_prime_power_is_reported(self):
+    def test_missing_extension_field_is_reported(self):
         with tempfile.TemporaryDirectory() as directory:
             results_dir = Path(directory)
             (results_dir / "prime_field_solutions.txt").write_text(
@@ -62,7 +62,7 @@ class CoverageTests(unittest.TestCase):
             )
             # Keep the file nonempty while deliberately omitting 3^2, the only
             # extension field below 10 whose prime result does not cover it.
-            (results_dir / "power_field_solutions.txt").write_text(
+            (results_dir / "extension_field_solutions.txt").write_text(
                 "5^2: None\n",
                 encoding="utf-8",
             )
@@ -79,18 +79,18 @@ class CoverageTests(unittest.TestCase):
                 "3: base=1, steps=(1, 2)\n5: None\n7: None\n",
                 encoding="utf-8",
             )
-            (results_dir / "power_field_solutions.txt").write_text(
+            (results_dir / "extension_field_solutions.txt").write_text(
                 "5^2: None\n",
                 encoding="utf-8",
             )
 
             with patch.object(gap_coverage, "RESULTS_DIR", results_dir):
-                errors, _, power_count, implicit_count = (
+                errors, _, extension_count, implicit_count = (
                     gap_coverage.check_coverage(10)
                 )
 
         self.assertEqual(errors, [])
-        self.assertEqual(power_count, 1)
+        self.assertEqual(extension_count, 1)
         self.assertEqual(implicit_count, 1)
 
 

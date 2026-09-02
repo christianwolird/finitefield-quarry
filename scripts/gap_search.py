@@ -4,17 +4,18 @@ from time import perf_counter
 
 from sympy import primerange
 
+from ffquarry.extension_field import ExtensionField
 from ffquarry.gap_tools import smart_search
-from ffquarry.power_field import PowerField
 from ffquarry.prime_field import PrimeField
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 RESULTS_DIR = PROJECT_ROOT / "results" / "gaps"
 PRIME_RESULTS_PATH = RESULTS_DIR / "prime_field_solutions.txt"
-POWER_RESULTS_PATH = RESULTS_DIR / "power_field_solutions.txt"
+EXTENSION_RESULTS_PATH = RESULTS_DIR / "extension_field_solutions.txt"
+DEFAULT_ORDER_BOUND = 200_000
 
 
-def parse_args():
+def parse_args(argv=None):
     parser = argparse.ArgumentParser(
         description=(
             "Search for 3x3 generalized arithmetic progressions of distinct "
@@ -26,16 +27,21 @@ def parse_args():
         "--verbose",
         action="store_true",
         help=(
-            "Print each unresolved characteristic and prime-power field order "
+            "Print each unresolved characteristic and extension-field order "
             "as it is searched."
         ),
     )
     parser.add_argument(
         "order_bound",
         type=int,
-        help="Search finite fields with order below this bound.",
+        nargs="?",
+        default=DEFAULT_ORDER_BOUND,
+        help=(
+            "Search finite fields with order below this bound "
+            f"(default: {DEFAULT_ORDER_BOUND})."
+        ),
     )
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def prime_search(order_bound, verbose=False):
@@ -43,7 +49,8 @@ def prime_search(order_bound, verbose=False):
 
     with open(PRIME_RESULTS_PATH, "w", encoding="utf-8") as results_file:
         # Prime fields with a solution also settle all extension fields of
-        # the same characteristic, so only failures move on to power_search().
+        # the same characteristic, so only failures move on to
+        # extension_search().
         for p in primerange(order_bound):
             if p == 2:
                 continue
@@ -68,7 +75,7 @@ def prime_search(order_bound, verbose=False):
     return no_solution_primes
 
 
-def prime_power_exponents(p, order_bound):
+def extension_exponents(p, order_bound):
     exponent = 2
     order = p * p
 
@@ -79,20 +86,20 @@ def prime_power_exponents(p, order_bound):
         order *= p
 
 
-def power_search(order_bound, no_solution_primes, verbose=False):
-    no_solution_power_orders = []
+def extension_search(order_bound, no_solution_primes, verbose=False):
+    no_solution_extension_orders = []
 
-    with open(POWER_RESULTS_PATH, "w", encoding="utf-8") as results_file:
+    with open(EXTENSION_RESULTS_PATH, "w", encoding="utf-8") as results_file:
         for p in no_solution_primes:
             if verbose:
                 print(
-                    f"Searching prime-power fields of characteristic {p}...",
+                    f"Searching extension fields of characteristic {p}...",
                     flush=True,
                 )
 
             solved_exponents = []
 
-            for exponent in prime_power_exponents(p, order_bound):
+            for exponent in extension_exponents(p, order_bound):
                 q = p**exponent
                 label = f"{p}^{exponent}"
                 inherited_from = None
@@ -114,7 +121,7 @@ def power_search(order_bound, no_solution_primes, verbose=False):
                     results_file.flush()
                     continue
 
-                field = PowerField(q)
+                field = ExtensionField(q)
                 result = smart_search(field)
                 polynomial = field.gf.irreducible_poly
 
@@ -122,7 +129,7 @@ def power_search(order_bound, no_solution_primes, verbose=False):
                     if verbose:
                         print(f"  No solution.", flush=True)
 
-                    no_solution_power_orders.append(q)
+                    no_solution_extension_orders.append(q)
                     results_file.write(f"{label}: None\n")
                 else:
                     if verbose:
@@ -137,7 +144,7 @@ def power_search(order_bound, no_solution_primes, verbose=False):
                     )
                 results_file.flush()
 
-    return no_solution_power_orders
+    return no_solution_extension_orders
 
 
 def main():
@@ -160,26 +167,28 @@ def main():
 
     if no_solution_primes:
         print(
-            "Beginning search through odd prime-power order fields "
+            "Beginning search through odd extension fields "
             "for unresolved characteristics...",
             flush=True,
         )
-        power_start_time = perf_counter()
-        no_solution_power_orders = power_search(
+        extension_start_time = perf_counter()
+        no_solution_extension_orders = extension_search(
             args.order_bound,
             no_solution_primes,
             verbose=args.verbose,
         )
-        power_elapsed = perf_counter() - power_start_time
+        extension_elapsed = perf_counter() - extension_start_time
 
-        print(f"Completed power-field search in {power_elapsed:.2f} seconds.")
         print(
-            f"{len(no_solution_power_orders)} odd prime-power fields had no "
+            f"Completed extension-field search in {extension_elapsed:.2f} seconds."
+        )
+        print(
+            f"{len(no_solution_extension_orders)} odd extension fields had no "
             "3x3 GAP of squares:"
         )
-        print(f"  {no_solution_power_orders}")
+        print(f"  {no_solution_extension_orders}")
     else:
-        print("No prime-power fields needed to be searched.")
+        print("No extension fields needed to be searched.")
 
     elapsed = perf_counter() - start_time
     print(f"Completed full search in {elapsed:.2f} seconds.")
