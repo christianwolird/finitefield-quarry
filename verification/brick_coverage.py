@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
-"""Check that the brick results cover every odd field below their bounds."""
+"""Check that brick result files cover every odd field below their bounds.
+
+This complements ``brick_verify`` which checks the validity of the solutions.
+"""
 
 import argparse
 
 from sympy import primerange
 
+# Support invocation both as ``python -m`` and by direct file path.
 try:
     from ._result_tools import (
         PROJECT_ROOT,
@@ -23,12 +27,14 @@ except ImportError:
     )
 
 
+# The 3D and 4D searches were run with different bounds.
 DEFAULT_ORDER_BOUNDS = {3: 1_000, 4: 700_000}
 RESULTS_DIR = PROJECT_ROOT / "results" / "bricks"
 DIMENSION_DIRS = {3: RESULTS_DIR / "three_dim", 4: RESULTS_DIR / "four_dim"}
 
 
 def parse_args(argv=None):
+    """Read which dimension and exclusive order bound should be audited."""
     parser = argparse.ArgumentParser(
         description="Check coverage of the 3D and 4D brick result files."
     )
@@ -49,8 +55,9 @@ def parse_args(argv=None):
     return args
 
 
-def check_dimension(dimensions, order_bound):
-    results_dir = DIMENSION_DIRS[dimensions]
+def check_dimension(dimension, order_bound):
+    """Return coverage errors and field counts for one brick dimension."""
+    results_dir = DIMENSION_DIRS[dimension]
     prime_records, prime_errors = read_prime_records(
         results_dir / "prime_field_solutions.txt"
     )
@@ -64,18 +71,26 @@ def check_dimension(dimensions, order_bound):
     implicit_extension_count = 0
 
     if order_bound <= 3:
-        errors.append(f"{dimensions}D order bound must be greater than 3")
+        errors.append(f"{dimension}D order bound must be greater than 3")
         return errors, prime_count, extension_count, implicit_extension_count
 
+    # Finite fields have exactly the prime-power orders p^a. This outer loop
+    # accounts for a=1; extension_exponents supplies every a>=2 still below
+    # the bound, so no odd field order in the range is skipped or duplicated.
     for p in primerange(3, order_bound):
         p = int(p)
         prime_count += 1
         prime_record = prime_records.get(p)
+        # A prime record may be a witness or ``None``; either one documents
+        # that the search processed F_p.
         if prime_record is None:
             missing.append(str(p))
 
         for exponent in extension_exponents(p, order_bound):
             extension_count += 1
+            # Any witness in F_p remains valid in all F_(p^a), so those fields
+            # are covered without separate result lines. If F_p was unresolved,
+            # every extension must have an explicit result-file entry.
             if prime_record is not None and prime_record.body != "None":
                 implicit_extension_count += 1
             elif (p, exponent) not in extension_records:
@@ -83,7 +98,7 @@ def check_dimension(dimensions, order_bound):
 
     if missing:
         errors.append(
-            f"{dimensions}D results are missing coverage for "
+            f"{dimension}D results are missing coverage for "
             + ", ".join(missing[:20])
             + (f" (and {len(missing) - 20} more)" if len(missing) > 20 else "")
         )
@@ -92,19 +107,20 @@ def check_dimension(dimensions, order_bound):
 
 
 def main(argv=None):
+    """Audit one or both dimensions and print a compact coverage summary."""
     args = parse_args(argv)
     dimensions_to_check = (args.dimension,) if args.dimension else (3, 4)
     errors = []
     summaries = []
 
-    for dimensions in dimensions_to_check:
-        order_bound = args.order_bound or DEFAULT_ORDER_BOUNDS[dimensions]
+    for dimension in dimensions_to_check:
+        order_bound = args.order_bound or DEFAULT_ORDER_BOUNDS[dimension]
         dimension_errors, prime_count, extension_count, implicit_count = (
-            check_dimension(dimensions, order_bound)
+            check_dimension(dimension, order_bound)
         )
         errors.extend(dimension_errors)
         summaries.append(
-            f"{dimensions}D below {order_bound}: {prime_count} primes and "
+            f"{dimension}D below {order_bound}: {prime_count} primes and "
             f"{extension_count} extensions "
             f"({implicit_count} by prime-field inclusion)"
         )

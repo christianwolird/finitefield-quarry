@@ -1,4 +1,10 @@
-"""Shared parsing and finite-field helpers for the verification scripts."""
+"""Shared parsing and finite-field helpers for the verification scripts.
+
+The verification programs deliberately reconstruct witnesses from their
+printed text instead of importing the search routines. This catches malformed
+output and checks the recorded mathematics through a path largely independent
+of the code that found it.
+"""
 
 from dataclasses import dataclass
 from functools import cache
@@ -9,11 +15,15 @@ import galois
 from sympy import isprime
 
 
+# Resolve result paths relative to the repository, independent of the folder
+# from which a person invokes a verification script.
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 @dataclass(frozen=True)
 class Record:
+    """One parsed line, together with enough context for a useful error."""
+
     path: Path
     line_number: int
     label: str
@@ -21,10 +31,16 @@ class Record:
 
     @property
     def location(self):
+        """Give the conventional ``file:line`` location used in diagnostics."""
         return f"{self.path}:{self.line_number}"
 
 
 def _read_records(path):
+    """Split a result file into ``label: body`` records.
+
+    Structural problems are accumulated rather than raised immediately so a
+    committee member can see every bad line from a single verification run.
+    """
     records = []
     errors = []
 
@@ -37,6 +53,8 @@ def _read_records(path):
         errors.append(f"{path}: result file is empty")
 
     for line_number, line in enumerate(lines, start=1):
+        # The first colon separates the field label (for example 29 or 3^4)
+        # from the witness, failure marker, or inheritance statement.
         match = re.fullmatch(r"([^:]+): (.+)", line)
         if match is None:
             errors.append(f"{path}:{line_number}: malformed result line")
@@ -67,6 +85,9 @@ def read_prime_records(path):
             continue
 
         p = int(record.label)
+        # Search files intentionally cover odd characteristic only. Checking
+        # primality here prevents a mislabeled composite modulus from passing
+        # later arithmetic checks by accident.
         if p == 2 or not isprime(p):
             errors.append(f"{record.location}: {p} is not an odd prime")
             continue
@@ -93,6 +114,8 @@ def read_extension_records(path):
             continue
 
         p, exponent = map(int, match.groups())
+        # A genuine extension label has prime characteristic and degree at
+        # least two; degree one belongs in the prime-field results.
         if p == 2 or not isprime(p):
             errors.append(f"{record.location}: {p} is not an odd prime")
             continue
@@ -112,7 +135,13 @@ def read_extension_records(path):
 
 @cache
 def extension_field(p, exponent, polynomial_text):
-    """Construct the exact extension field named by a result record."""
+    """Construct the exact extension field named by a result record.
+
+    An abstract field of order p^a is unique up to isomorphism, but printed
+    polynomial coordinates depend on the chosen irreducible polynomial. The
+    verifier must therefore reconstruct the same concrete representation that
+    was recorded beside the witness.
+    """
     # Verification performs only a handful of operations in each of many
     # different fields. Pure-Python arithmetic avoids paying a separate Numba
     # compilation cost for every result-file polynomial.
@@ -122,6 +151,10 @@ def extension_field(p, exponent, polynomial_text):
     except Exception as error:
         raise ValueError(f"invalid polynomial {polynomial_text!r}: {error}") from error
 
+    # Degree a is needed for p^a elements. Irreducibility makes the quotient a
+    # field. The search library chooses a primitive polynomial, so verifying
+    # primitivity also confirms that its printed α is a multiplicative
+    # generator, as assumed by the polynomial-coordinate parser below.
     if polynomial.degree != exponent:
         raise ValueError(
             f"polynomial degree {polynomial.degree} does not match exponent {exponent}"
@@ -147,13 +180,19 @@ def parse_prime_element(text, p):
         raise ValueError(f"invalid prime-field element {text!r}")
 
     value = int(text)
+    # Requiring the canonical range prevents two different strings, such as
+    # 1 and p+1, from concealing duplicate field elements in an output file.
     if value >= p:
         raise ValueError(f"element {value} is not in the canonical range 0,...,{p - 1}")
     return value
 
 
 def parse_extension_element(text, field, p, exponent):
-    """Parse galois's polynomial representation in the primitive element α."""
+    """Parse ``galois`` polynomial coordinates in the primitive element α.
+
+    A degree-a extension has basis 1, α, ..., α^(a-1) over F_p. The result
+    files print each element as a linear combination in precisely this basis.
+    """
     if not text:
         raise ValueError("empty field element")
 
@@ -161,6 +200,8 @@ def parse_extension_element(text, field, p, exponent):
     seen_degrees = set()
 
     for term in re.split(r"\s*\+\s*", text):
+        # A term is either a constant or c*α^d. The printer omits coefficient
+        # 1 and exponent 1, so all four forms 1, α, 2α, and α^2 are accepted.
         constant_match = re.fullmatch(r"0|[1-9]\d*", term)
         alpha_match = re.fullmatch(r"(?:(\d+))?α(?:\^(\d+))?", term)
 
@@ -173,6 +214,8 @@ def parse_extension_element(text, field, p, exponent):
         else:
             raise ValueError(f"invalid extension-field term {term!r}")
 
+        # Canonical coordinates use coefficients in 0,...,p-1 and powers
+        # below a. Duplicate powers would be a noncanonical representation.
         if coefficient >= p:
             raise ValueError(f"coefficient {coefficient} is outside 0,...,{p - 1}")
         if degree >= exponent:
@@ -183,21 +226,27 @@ def parse_extension_element(text, field, p, exponent):
             raise ValueError(f"degree {degree} occurs more than once")
         seen_degrees.add(degree)
 
+        # The exponent is bounded by the checks above, so this directly forms
+        # the corresponding basis term; no polynomial reduction is hidden in
+        # the text parser itself.
         value += field(coefficient) * field.primitive_element**degree
 
     return value
 
 
 def is_prime_square(value, p):
+    """Apply Euler's criterion directly in F_p for independent verification."""
     value %= p
     return value == 0 or pow(value, (p - 1) // 2, p) == 1
 
 
 def is_extension_square(value, field):
+    """Apply Euler's criterion directly in the reconstructed extension field."""
     return value == field(0) or value ** ((field.order - 1) // 2) == field(1)
 
 
 def extension_exponents(p, order_bound):
+    """Yield every extension degree a>=2 with p^a below the bound."""
     exponent = 2
     order = p * p
     while order < order_bound:
@@ -207,7 +256,13 @@ def extension_exponents(p, order_bound):
 
 
 def validate_inherited_records(extension_records, direct_solutions):
-    """Check that inherited entries point to a valid embedded solution."""
+    """Check that inherited entries point to a valid embedded solution.
+
+    The finite-field subfield theorem gives F_(p^a) as a subfield of F_(p^b)
+    exactly when a divides b. A valid inheritance claim must use the same
+    characteristic, a proper divisor degree, an existing source record, and a
+    source whose explicit witness has already passed verification.
+    """
     errors = []
     inheritance_pattern = re.compile(r"inherited from ([1-9]\d*)\^([1-9]\d*)")
 
@@ -243,5 +298,6 @@ def validate_inherited_records(extension_records, direct_solutions):
 
 
 def print_errors(errors):
+    """Print all accumulated failures in a visually consistent form."""
     for error in errors:
         print(f"ERROR: {error}")

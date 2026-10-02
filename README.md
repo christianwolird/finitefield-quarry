@@ -1,6 +1,6 @@
 # finitefield-quarry
 
-Search code for 3x3 generalized arithmetic progressions and 3D or 4D perfect Euler bricks of distinct squares over finite fields.
+Search code for 3x3 generalized arithmetic progressions and 3D or 4D strong perfect Euler bricks over finite fields.
 
 A 3x3 GAP is written as
 
@@ -99,7 +99,7 @@ It first searches odd prime fields below the order bound. If a solution is found
 
 For prime fields with no solution, the script searches extension fields of order `p^a` with `a >= 2` and `p^a` below the bound. If a solution is found over `F_{p^a}`, then fields `F_{p^b}` with `a | b` inherit that solution and are not searched separately.
 
-### Perfect bricks
+### Strong perfect bricks
 
 The brick dimension is required because 3D and 4D searches will generally use very different order bounds. Search one dimension at a time with:
 
@@ -149,7 +149,7 @@ Example lines:
 
 For extension fields, entries are printed in polynomial notation. The `polynomial=...` field records the irreducible polynomial used by `galois` to construct that finite field.
 
-### Perfect bricks
+### Strong perfect bricks
 
 Each dimension has separate prime-field and extension-field result files:
 
@@ -166,7 +166,7 @@ A brick is recorded by side-square values, not by a choice of square roots:
 101: side_squares=(1, 36, 95, 87)
 ```
 
-Every one of the 16 subset sums of this example is a distinct square in `F_101`. Extension-field results additionally record the field's irreducible polynomial.
+Every one of the 16 subset sums of this example is a square, and all 16 sums are distinct, so the brick is both perfect and strong in `F_101`. Extension-field results additionally record the field's irreducible polynomial.
 
 
 ## Verifying Results
@@ -181,7 +181,7 @@ python verification/brick_verify.py
 The GAP verifier reconstructs each 3x3 progression and checks that its nine
 entries are distinct squares with the recorded row and column steps. The brick
 verifier checks that all `2^d` subset sums of each `d`-dimensional result are
-distinct squares. Extension-field coordinates are interpreted using the
+squares (perfection) and distinct (strength). Extension-field coordinates are interpreted using the
 irreducible polynomial stored on the same result line.
 
 Check that the result files cover the searches' checked-in order bounds:
@@ -225,7 +225,7 @@ Both searches return either `None` or
 
 where `x = D - A` and `y = B - A`.
 
-### Perfect bricks
+### Strong perfect bricks
 
 For side-square values `(A, B, C)`, `subset_sums()` constructs
 
@@ -233,7 +233,7 @@ For side-square values `(A, B, C)`, `subset_sums()` constructs
 0, A, B, A+B, C, A+C, B+C, A+B+C
 ```
 
-and `is_perfect_brick()` requires all eight values to be squares and distinct. A 4D brick is checked in the same way with all 16 subset sums.
+and `is_strong_perfect_brick()` requires all eight values to be squares and distinct. Here, perfect means that every subset sum is a square; strong means that the subset sums are distinct. The search requires both properties. A 4D brick is checked in the same way with all 16 subset sums.
 
 The normalized exhaustive search fixes the first side-square to `1`, then adds square side values one at a time. It rejects a branch as soon as a newly introduced subset sum is repeated or fails the field wrapper's Euler-criterion test. Candidate squares are tested lazily; the search does not construct a table of all quadratic residues.
 

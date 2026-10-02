@@ -1,8 +1,17 @@
 #!/usr/bin/env python3
-"""Verify every explicit 3x3 GAP witness in the checked-in results."""
+"""Verify every 3x3 GAP in the solution files.
+
+For each printed tuple (A, x, y), this script reconstructs all values
+A+i*x+j*y, checks that the nine values are distinct squares, and independently
+checks the claimed row and column differences. It also validates every claim
+that a solution is inherited through a finite-field inclusion.
+"""
 
 import re
 
+# These imports support both ``python -m verification.gap_verify`` (package
+# form) and ``python verification/gap_verify.py`` (direct script form). Both
+# branches import the same functions; the arithmetic checks are unchanged.
 try:
     from ._result_tools import (
         PROJECT_ROOT,
@@ -31,6 +40,7 @@ except ImportError:
     )
 
 
+# Expected locations and exact grammars for the two kinds of witness line.
 RESULTS_DIR = PROJECT_ROOT / "results" / "gaps"
 PRIME_RESULTS_PATH = RESULTS_DIR / "prime_field_solutions.txt"
 EXTENSION_RESULTS_PATH = RESULTS_DIR / "extension_field_solutions.txt"
@@ -43,6 +53,12 @@ EXTENSION_SOLUTION_PATTERN = re.compile(
 
 
 def _gap_values(base, row_step, column_step, reduce_value):
+    """Construct the nine entries A+i*x+j*y in row-major order.
+
+    ``reduce_value`` performs arithmetic in the relevant field: reduction
+    modulo p for prime fields, or construction as an F_(p^a) element for
+    extension fields.
+    """
     return [
         reduce_value(base + row * row_step + column * column_step)
         for row in range(3)
@@ -51,13 +67,19 @@ def _gap_values(base, row_step, column_step, reduce_value):
 
 
 def _verify_gap(values, row_step, column_step, key, is_square):
+    """Return every mathematical defect found in one reconstructed GAP."""
     errors = []
 
+    # Nine unique keys mean nine distinct field elements, even when the
+    # library's extension-field objects themselves are not hashable.
     if len({key(value) for value in values}) != 9:
         errors.append("the nine GAP entries are not distinct")
     if not all(is_square(value) for value in values):
         errors.append("one or more GAP entries are not squares")
 
+    # Row-major storage places each row in three consecutive positions.
+    # Check both adjacent differences, rather than trusting construction, so
+    # this verifier remains useful if its constructor later changes.
     for row in range(3):
         offset = 3 * row
         if key(values[offset + 1] - values[offset]) != key(column_step):
@@ -67,6 +89,7 @@ def _verify_gap(values, row_step, column_step, key, is_square):
             errors.append("a row does not have the recorded column step")
             break
 
+    # Moving one row down advances three positions in the flat list.
     for column in range(3):
         if key(values[3 + column] - values[column]) != key(row_step):
             errors.append("a column does not have the recorded row step")
@@ -79,6 +102,9 @@ def _verify_gap(values, row_step, column_step, key, is_square):
 
 
 def verify_prime_record(p, record):
+    """Verify one prime-field line; return ``(is_solution, errors)``."""
+    # ``None`` is a search claim rather than a witness. Exhaustiveness is
+    # established by the search algorithm; there is no short object to check.
     if record.body == "None":
         return False, []
 
@@ -93,6 +119,7 @@ def verify_prime_record(p, record):
     except ValueError as error:
         return False, [f"{record.location}: {error}"]
 
+    # Keep all derived integers in their canonical residue classes.
     reduce_value = lambda value: value % p
     values = _gap_values(base, row_step, column_step, reduce_value)
     errors = _verify_gap(
@@ -106,6 +133,9 @@ def verify_prime_record(p, record):
 
 
 def verify_extension_record(p, exponent, record):
+    """Verify one explicit extension-field line in its recorded coordinates."""
+    # Inherited entries are checked globally after their source witnesses have
+    # been verified; ``None`` again contains no positive witness to inspect.
     if record.body == "None" or record.body.startswith("inherited from "):
         return False, []
 
@@ -135,6 +165,7 @@ def verify_extension_record(p, exponent, record):
 
 
 def main():
+    """Verify both result files and print one summary or all discovered errors."""
     prime_records, prime_errors = read_prime_records(PRIME_RESULTS_PATH)
     extension_records, extension_errors = read_extension_records(
         EXTENSION_RESULTS_PATH
@@ -143,6 +174,8 @@ def main():
     verified_prime_solutions = 0
     verified_extension_solutions = set()
 
+    # A record counts as an explicit solution only after all mathematical
+    # checks pass. This set is later the trusted source for inheritance claims.
     for p, record in prime_records.items():
         valid, record_errors = verify_prime_record(p, record)
         errors.extend(record_errors)
@@ -162,6 +195,8 @@ def main():
         print_errors(errors)
         return 1
 
+    # Inherited records are reported separately because they contain no new
+    # printed witness; their validity follows from the subfield theorem.
     inherited_count = sum(
         record.body.startswith("inherited from ")
         for record in extension_records.values()
