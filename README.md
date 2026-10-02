@@ -55,7 +55,7 @@ finitefield-quarry/
 └── README.md
 ```
 
-`ffquarry` contains the finite-field wrappers and search code. The two scripts are the computational entry points for GAP and brick searches.
+`ffquarry` contains the finite-field wrappers and search code. The two scripts are the command line entry points for GAP and brick searches.
 
 
 ## Setup
@@ -101,16 +101,18 @@ For prime fields with no solution, the script searches extension fields of order
 
 ### Strong perfect bricks
 
-The brick dimension is required because 3D and 4D searches will generally use very different order bounds. Search one dimension at a time with:
+3D and 4D searches use different bounds. They also use different heuristics in an attempt to quickly find an "easy" solution before doing the full exhaustive search.
+
+Search one dimension at a time with:
 
 ```bash
-python scripts/brick_search.py 400000 --dimension 3
+python scripts/brick_search.py 1000 --dimension 3
 ```
 
 To search 4D bricks or print each field as it is searched, use:
 
 ```bash
-python scripts/brick_search.py 400000 --dimension 4 --verbose
+python scripts/brick_search.py 700000 --dimension 4 --verbose
 ```
 
 The brick script also skips characteristic `2` and applies the same prime-field and extension-field inheritance rules as the GAP search.
@@ -171,7 +173,7 @@ Every one of the 16 subset sums of this example is a square, and all 16 sums are
 
 ## Verifying Results
 
-Verify every explicit witness and every extension-field inheritance reference:
+You can verify every solution and extension-field inheritance:
 
 ```bash
 python verification/gap_verify.py
@@ -184,7 +186,7 @@ verifier checks that all `2^d` subset sums of each `d`-dimensional result are
 squares (perfection) and distinct (strength). Extension-field coordinates are interpreted using the
 irreducible polynomial stored on the same result line.
 
-Check that the result files cover the searches' checked-in order bounds:
+You can also check that the result files cover the searches' prescribed order bounds:
 
 ```bash
 python verification/gap_coverage.py
@@ -203,9 +205,9 @@ the bound.
 
 ### GAPs
 
-`smart_search(field)` first tries `quick_search(field)` and falls back to `full_search(field)` only if needed.
+The `smart_search` function first tries `quick_search` and falls back to `full_search` only if needed.
 
-`quick_search(field)` searches the normalized family
+`quick_search` searches for solutions of the following form
 
 ```text
 1   25  49
@@ -215,7 +217,7 @@ G   H   I
 
 where `D` varies over square values.
 
-`full_search(field)` searches the normalized 3x3 GAP family by fixing `A = 1` and then `A = 0`, iterating over square values for `B` and `D`, and deriving the rest of the GAP from the row and column steps.
+`full_search(field)` searches for 3x3 GAPs exhaustively by fixing `A = 1` and then `A = 0`, iterating over square values for `B` and `D`, and deriving the rest of the GAP from the row and column steps.
 
 Both searches return either `None` or
 
@@ -227,15 +229,15 @@ where `x = D - A` and `y = B - A`.
 
 ### Strong perfect bricks
 
-For side-square values `(A, B, C)`, `subset_sums()` constructs
+For side-square values `(A, B, C)`, the function `subset_sums()` constructs
 
 ```text
 0, A, B, A+B, C, A+C, B+C, A+B+C
 ```
 
-and `is_strong_perfect_brick()` requires all eight values to be squares and distinct. Here, perfect means that every subset sum is a square; strong means that the subset sums are distinct. The search requires both properties. A 4D brick is checked in the same way with all 16 subset sums.
+and the function `is_strong_perfect_brick()` checks all eight values to be squares and distinct. Here, perfect means that every subset sum is a square; strong means that the subset sums are distinct. The search requires both properties. A 4D brick is checked in the same way with all 16 subset sums.
 
-The normalized exhaustive search fixes the first side-square to `1`, then adds square side values one at a time. It rejects a branch as soon as a newly introduced subset sum is repeated or fails the field wrapper's Euler-criterion test. Candidate squares are tested lazily; the search does not construct a table of all quadratic residues.
+The exhaustive search fixes the first side-square to `1`, then adds square side values one at a time. It rejects a branch recursively as soon as a newly introduced subset sum is repeated or fails the field wrapper's Euler-criterion test. Candidate squares are tested with Euler's criterion; the search does not construct a table of all quadratic residues.
 
 The 3D smart search first fixes two side-squares to `3²` and `4²`, whose sum is `5²`, and varies the third. The 4D smart search first reduces several [small primitive integer Euler bricks](https://en.wikipedia.org/wiki/Euler_brick#Examples) into the field and tries to extend each with a fourth square side. In either dimension, the smart search falls back to the normalized exhaustive search if its integer seeds do not produce a result.
 
